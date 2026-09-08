@@ -1,0 +1,14 @@
+[general]
+name=FIC Shoreline Change Analisys
+qgisMinimumVersion=3.16
+description=Transectos perpendiculares a una baseline y calculo de tasas de cambio de linea de costa (NSM, EPR, LRR) a partir de shorelines multitemporales con campo de fecha. Estilo DSAS.
+version=0.1
+author=Daniel Ibarra Marinas
+email=daniel.ibarra@uat.edu.mx
+about=Plugin para el calculo de la erosion costera. Creado por Daniel Ibarra Marinas, Facultad de Ingenieria y Ciencias, Universidad Autonoma de Tamaulipas. Genera transectos perpendiculares a una linea base digitalizada por el usuario y calcula, para cada transecto, Net Shoreline Movement (NSM), End Point Rate (EPR) y Linear Regression Rate (LRR con R2) a partir de una capa de lineas de costa multitemporal con un campo de fecha.
+tracker=
+repository=
+category=Analysis
+hasProcessingProvider=yes
+experimental=True
+icon=icon.png
