@@ -1,4 +1,4 @@
-# FIC Shoreline Change Analysis
+# FIC Coastal Change Analysis
 
 [English](#english) · [Español](#español)
 
@@ -27,6 +27,8 @@ computed:
   the slope (LCI) at the chosen level (90, 95 or 99 %).
 - **WLR (Weighted Linear Regression, m/yr)**, optional: like LRR, but dates
   with less positional error weigh more. Requires positional uncertainty.
+- **Trend:** each transect is classified as `erosion`, `accretion`,
+  `stable` or `unclassified` (see below).
 
 Also:
 
@@ -46,13 +48,13 @@ Also:
 ### Installation
 
 1. Install it from the QGIS plugin manager (Plugins → Manage and Install
-   Plugins), searching for "FIC Shoreline Change Analysis". Since it is
+   Plugins), searching for "FIC Coastal Change Analysis". Since it is
    experimental, first tick "Show also experimental plugins" in the
    Settings tab.
 2. Or download the ZIP of the latest version and use "Install from ZIP"
    in the same manager.
 3. It appears in the Processing Toolbox, under
-   "FIC Shoreline Change Analysis" → "Coastal".
+   "FIC Coastal Change Analysis" → "Coastal".
 
 ### Usage
 
@@ -76,6 +78,8 @@ The algorithm also asks for:
   the general shape of the coast rather than digitizing kinks. A
   reasonable starting point is 2 to 5 times the spacing. 0 = no smoothing.
 - The **confidence level** of the intervals: 90 % (default), 95 % or 99 %.
+- The **stability criterion** for the `trend` field (statistical or
+  threshold) and, for the threshold criterion, its value in m/yr.
 - The **positional uncertainty** of the shorelines (optional), in metres.
   It is taken, in order of priority, from:
   1. A field with the **total error** already computed.
@@ -91,6 +95,25 @@ The algorithm also asks for:
   underestimates the error (the plugin warns about it): add at least the
   RMSE. Without uncertainty, the plugin works the same but does not
   compute EPRunc or WLR.
+
+#### How the trend is classified
+
+The **stability criterion** decides when a transect is `stable`:
+
+- **Statistical** (default): stable if the rate is not different from
+  zero. The best rate with a confidence interval is used, in this order:
+  WLR with WCI, LRR with LCI, EPR with EPRunc. With only 2 dates and no
+  positional uncertainty there is no interval, so the transect is
+  `unclassified`.
+- **Threshold:** stable if the absolute rate is at most the threshold
+  (m/yr). The rate used is WLR if available, else LRR (3 or more dates),
+  else EPR. The default value (0.5 m/yr) is only an example: choose one
+  that makes sense for your coast.
+
+Otherwise, `accretion` if the rate is positive and `erosion` if it is
+negative. Transects with `flag` 1 or 2 are always `unclassified`, because
+their sign is not reliable. The `trend_src` field says which rate was
+used.
 
 #### How the seaward side is decided
 
@@ -123,6 +146,8 @@ A line layer (the transects) with these fields:
 | `WCI90` (or `WCI95`, `WCI99`) | Half-width of the WLR confidence interval (m/yr) |
 | `flag` | 0 = OK; 1 = the baseline crosses a shoreline at that transect; 2 = the seaward side could not be determined |
 | `tr_cross` | 1 = the transect crosses another transect (usually at sharp bends) |
+| `trend` | `erosion`, `accretion`, `stable` or `unclassified` |
+| `trend_src` | Rate used for `trend`: `WLR`, `LRR` or `EPR` (empty if unclassified) |
 
 Positive NSM, EPR and LRR = accretion; negative = erosion. Only transects
 crossing at least 2 dates are kept. Transects are drawn from land to sea:
@@ -173,6 +198,9 @@ calculan estas métricas, al estilo DSAS:
 - **WLR (Weighted Linear Regression, m/año)**, opcional: como el LRR, pero
   las fechas con menos error de posición pesan más. Necesita la
   incertidumbre de posición.
+- **Tendencia:** cada transecto se clasifica como `erosion` (erosión),
+  `accretion` (acreción), `stable` (estable) o `unclassified` (sin
+  clasificar). Ver más abajo.
 
 Además:
 
@@ -192,13 +220,13 @@ Además:
 ### Instalación
 
 1. Instálalo desde el gestor de complementos de QGIS (Complementos →
-   Administrar e instalar complementos), buscando "FIC Shoreline Change
+   Administrar e instalar complementos), buscando "FIC Coastal Change
    Analysis". Al ser experimental, activa antes "Mostrar también los
    complementos experimentales" en la pestaña de configuración.
 2. O descarga el ZIP de la última versión e instálalo con "Instalar
    desde ZIP" en el mismo gestor.
 3. Aparece en la Caja de herramientas de Processing, en
-   "FIC Shoreline Change Analysis" → "Coastal".
+   "FIC Coastal Change Analysis" → "Coastal".
 
 ### Uso
 
@@ -225,6 +253,8 @@ El algoritmo pide también:
   espaciado. Con 0 no se suaviza.
 - El **nivel de confianza** de los intervalos: 90 % (por defecto),
   95 % o 99 %.
+- El **criterio de estabilidad** del campo `trend` (estadístico o umbral)
+  y, con el criterio umbral, su valor en m/año.
 - La **incertidumbre de posición** de las líneas de costa (opcional), en
   metros. Se toma, por orden de prioridad:
   1. Un campo con el **error total** ya calculado.
@@ -240,6 +270,24 @@ El algoritmo pide también:
   La resolución sola subestima el error (el plugin lo avisa): conviene
   añadir al menos el RMSE. Sin incertidumbre, el plugin funciona igual
   pero no calcula EPRunc ni WLR.
+
+#### Cómo se clasifica la tendencia
+
+El **criterio de estabilidad** decide cuándo un transecto es `stable`:
+
+- **Estadístico** (por defecto): estable si la tasa no es distinta de
+  cero. Se usa la mejor tasa que tenga intervalo de confianza, por este
+  orden: WLR con WCI, LRR con LCI, EPR con EPRunc. Con solo 2 fechas y sin
+  incertidumbre de posición no hay intervalo, y el transecto queda
+  `unclassified`.
+- **Umbral:** estable si el valor absoluto de la tasa no pasa del umbral
+  (m/año). Se usa WLR si existe; si no, LRR (3 o más fechas); si no, EPR.
+  El valor por defecto (0,5 m/año) es solo un ejemplo: elige uno que
+  tenga sentido en tu costa.
+
+En los demás casos, `accretion` si la tasa es positiva y `erosion` si es
+negativa. Los transectos con `flag` 1 o 2 quedan siempre `unclassified`,
+porque su signo no es fiable. El campo `trend_src` dice qué tasa se usó.
 
 #### Cómo se decide el lado del mar
 
@@ -272,6 +320,8 @@ Una capa de líneas (los transectos) con estos campos:
 | `WCI90` (o `WCI95`, `WCI99`) | Semiamplitud del intervalo de confianza de la WLR (m/año) |
 | `flag` | 0 = correcto; 1 = la línea base cruza alguna línea de costa en ese transecto; 2 = no se pudo saber hacia qué lado está el mar |
 | `tr_cross` | 1 = el transecto se cruza con otro transecto (suele pasar en curvas cerradas) |
+| `trend` | `erosion` (erosión), `accretion` (acreción), `stable` (estable) o `unclassified` (sin clasificar) |
+| `trend_src` | Tasa usada para `trend`: `WLR`, `LRR` o `EPR` (vacío si no se clasificó) |
 
 NSM, EPR y LRR positivos = acreción; negativos = erosión. Solo se guardan
 los transectos que cortan al menos 2 fechas. Los transectos se dibujan de
@@ -302,7 +352,9 @@ encuentras un error, abre un [issue](https://github.com/adanielibarra/FIC/issues
 ## Changelog / Cambios
 
 - **0.1.2:**
-  - EN: positional uncertainty per shoreline (total error, components in
+  - EN: `trend` field (erosion, accretion, stable, unclassified) with
+    statistical or threshold stability criterion, and `trend_src`;
+    positional uncertainty per shoreline (total error, components in
     quadrature: resolution, RMSE and digitizing, or single value) with
     EPRunc and weighted regression (WLR, WR2, WSE, WCI); R², LSE and LRR
     confidence interval (90, 95 or 99 %), empty with fewer than 3 dates;
@@ -312,7 +364,9 @@ encuentras un error, abre un [issue](https://github.com/adanielibarra/FIC/issues
     metres) and automatic reprojection of shorelines; features with the
     same date are merged; inputs restricted to line layers; bilingual
     interface (English and Spanish).
-  - ES: incertidumbre de posición por línea de costa (error total,
+  - ES: campo `trend` (erosion, accretion, stable, unclassified) con
+    criterio de estabilidad estadístico o por umbral, y `trend_src`;
+    incertidumbre de posición por línea de costa (error total,
     componentes en cuadratura: resolución, RMSE y digitalización, o valor
     único) con EPRunc y regresión ponderada (WLR, WR2, WSE, WCI); R², LSE e
     intervalo de confianza del LRR (90, 95 o 99 %), vacíos con menos de 3

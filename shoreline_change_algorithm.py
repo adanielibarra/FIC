@@ -1,6 +1,6 @@
 """
-FIC Shoreline Change Analysis
-=============================
+FIC Coastal Change Analysis
+===========================
 Flujo básico al estilo DSAS: transectos perpendiculares a una baseline
 digitalizada por el usuario y estadísticas de cambio de línea de costa
 por transecto (NSM, EPR, LRR).
@@ -51,6 +51,12 @@ Supuestos (cambian el resultado):
     trozo no tiene, la fecha queda sin incertidumbre. EPRunc =
     sqrt(U1^2 + U2^2) / años. WLR: mínimos cuadrados ponderados con
     w = 1 / U^2; WSE = sqrt(sum(w * res^2) / (n - 2)).
+
+11. Tendencia (campo trend): erosion / accretion / stable / unclassified.
+    Criterio estadístico: stable si |tasa| <= intervalo, con la primera
+    disponible de WLR/WCI, LRR/LCI, EPR/EPRunc. Criterio umbral: stable si
+    |tasa| <= umbral, con WLR, LRR (n >= 3) o EPR. flag != 0 siempre
+    unclassified. trend_src guarda la tasa usada.
 """
 
 import math
@@ -257,6 +263,56 @@ def wlr_stats(xs, ys, us, conf):
     return b, wr2, wse, wci
 
 
+TREND_STATISTICAL = 0
+TREND_THRESHOLD = 1
+
+
+def classify_trend(flag, method, threshold, n,
+                   epr, eprunc, lrr, lci, wlr, wci):
+    """Clasifica un transecto en erosion / accretion / stable / unclassified.
+
+    Devuelve (clase, tasa_usada) con tasa_usada = 'WLR', 'LRR', 'EPR' o
+    None.
+
+    - Transectos con flag distinto de 0: 'unclassified' (signo no fiable).
+    - Estadístico: se usa la mejor tasa con intervalo disponible, por este
+      orden: WLR con WCI, LRR con LCI, EPR con EPRunc. 'stable' si el valor
+      absoluto de la tasa es menor o igual que su intervalo (no distinta de
+      cero). Si no hay ninguna con intervalo: 'unclassified'.
+    - Umbral: se usa WLR si existe; si no, LRR con 3 o más fechas; si no,
+      EPR. 'stable' si el valor absoluto de la tasa es menor o igual que el
+      umbral (m/año).
+    - En los demás casos: 'accretion' si la tasa es positiva, 'erosion' si
+      es negativa.
+    """
+    if flag != 0:
+        return 'unclassified', None
+
+    if method == TREND_STATISTICAL:
+        if wlr is not None and wci is not None:
+            rate, band, src = wlr, wci, 'WLR'
+        elif lrr is not None and lci is not None:
+            rate, band, src = lrr, lci, 'LRR'
+        elif epr is not None and eprunc is not None:
+            rate, band, src = epr, eprunc, 'EPR'
+        else:
+            return 'unclassified', None
+    else:
+        if wlr is not None:
+            rate, src = wlr, 'WLR'
+        elif lrr is not None and n >= 3:
+            rate, src = lrr, 'LRR'
+        elif epr is not None:
+            rate, src = epr, 'EPR'
+        else:
+            return 'unclassified', None
+        band = threshold
+
+    if abs(rate) <= band:
+        return 'stable', src
+    return ('accretion' if rate > 0 else 'erosion'), src
+
+
 def lbl(en, es):
     """Etiqueta bilingüe en una línea: 'English / Español'."""
     return f'{en} / {es}'
@@ -336,6 +392,8 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
     CONF_LEVELS = [90, 95, 99]
     UNC_FIELD = 'UNC_FIELD'
     UNC_DEFAULT = 'UNC_DEFAULT'
+    TREND_METHOD = 'TREND_METHOD'
+    TREND_THRESH = 'TREND_THRESH'
     RES_FIELD = 'RES_FIELD'
     GEOREF_FIELD = 'GEOREF_FIELD'
     DIGIT_FIELD = 'DIGIT_FIELD'
@@ -348,7 +406,7 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
         return 'shoreline_change_stats'
 
     def displayName(self):
-        return 'FIC Shoreline Change Analysis'
+        return 'FIC Coastal Change Analysis'
 
     def group(self):
         return 'Coastal'
@@ -416,6 +474,18 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
             'baseline has kinks and transects come out skewed or crossing. '
             'A reasonable starting point is 2 to 5 times the spacing; '
             '0 = no smoothing.</p>'
+            '<p><b>Trend:</b> the <b>trend</b> field classifies each '
+            'transect as erosion, accretion, stable or unclassified. '
+            '<i>Statistical</i> criterion (default): stable if the rate is '
+            'not different from zero, using the best rate with an interval: '
+            'WLR with WCI, else LRR with LCI, else EPR with EPRunc; with 2 '
+            'dates and no positional uncertainty there is no interval and '
+            'the transect is unclassified. <i>Threshold</i> criterion: stable '
+            'if the absolute rate is at most the threshold (m/yr), using WLR, '
+            'else LRR (3 or more dates), else EPR. The 0.5 m/yr default is '
+            'only an example: choose a value that makes sense for your '
+            'coast. <b>trend_src</b> says which rate was used. Transects with '
+            'flag 1 or 2 are always unclassified.</p>'
             '<p style="color:#6b6b6b"><b>IMPORTANT:</b> check two fields '
             'before interpreting. <b>flag</b>: 0 = OK; 1 = the baseline '
             'crosses a shoreline at that transect (unreliable rates); 2 = the '
@@ -463,6 +533,19 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
             'base tiene quiebros y los transectos salen torcidos o se cruzan. '
             'Un punto de partida razonable es entre 2 y 5 veces el '
             'espaciado; 0 = sin suavizar.</p>'
+            '<p><b>Tendencia:</b> el campo <b>trend</b> clasifica cada '
+            'transecto como erosion (erosión), accretion (acreción), stable '
+            '(estable) o unclassified (sin clasificar). Criterio '
+            '<i>estadístico</i> (por defecto): estable si la tasa no es '
+            'distinta de cero, con la mejor tasa que tenga intervalo: WLR con '
+            'WCI; si no, LRR con LCI; si no, EPR con EPRunc. Con 2 fechas y '
+            'sin incertidumbre de posición no hay intervalo y el transecto '
+            'queda sin clasificar. Criterio <i>umbral</i>: estable si el '
+            'valor absoluto de la tasa no pasa del umbral (m/año), usando '
+            'WLR; si no, LRR (3 o más fechas); si no, EPR. El valor por '
+            'defecto de 0,5 m/año es solo un ejemplo: elige uno que tenga '
+            'sentido en tu costa. <b>trend_src</b> dice qué tasa se usó. Los '
+            'transectos con flag 1 o 2 quedan siempre sin clasificar.</p>'
             '<p style="color:#6b6b6b"><b>IMPORTANTE:</b> revisa dos campos '
             'antes de interpretar. <b>flag</b>: 0 = correcto; 1 = la línea '
             'base cruza alguna línea de costa en ese transecto (tasas poco '
@@ -540,6 +623,20 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
             self.CONF, lbl('Confidence level', 'Nivel de confianza'),
             options=[f'{c} %' for c in self.CONF_LEVELS],
             defaultValue=0))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.TREND_METHOD,
+            lbl('Stability criterion (trend field)',
+                'Criterio de estabilidad (campo trend)'),
+            options=[lbl('Statistical: rate not different from zero',
+                         'Estadístico: tasa no distinta de cero'),
+                     lbl('Threshold', 'Umbral')],
+            defaultValue=0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.TREND_THRESH,
+            lbl('Stability threshold (m/yr, only with Threshold criterion)',
+                'Umbral de estabilidad (m/año, solo con criterio Umbral)'),
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=0.5, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, lbl('Transects with shoreline change rates',
                              'Transectos con tasas de cambio')))
@@ -565,6 +662,8 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
         fields.append(QgsField(f'WCI{conf_pct}', QVariant.Double))
         fields.append(QgsField('flag', QVariant.Int))
         fields.append(QgsField('tr_cross', QVariant.Int))
+        fields.append(QgsField('trend', QVariant.String, len=12))
+        fields.append(QgsField('trend_src', QVariant.String, len=3))
         return fields
 
     def _decimal_year(self, value, feedback):
@@ -599,6 +698,8 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
         conf = conf_pct / 100.0
         unc_field = self.parameterAsString(parameters, self.UNC_FIELD, context)
         unc_default = self.parameterAsDouble(parameters, self.UNC_DEFAULT, context)
+        trend_method = self.parameterAsEnum(parameters, self.TREND_METHOD, context)
+        trend_thresh = self.parameterAsDouble(parameters, self.TREND_THRESH, context)
         res_field = self.parameterAsString(parameters, self.RES_FIELD, context)
         georef_field = self.parameterAsString(parameters, self.GEOREF_FIELD, context)
         digit_field = self.parameterAsString(parameters, self.DIGIT_FIELD, context)
@@ -783,6 +884,7 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
         n_transects = int(total_length // spacing) + 1
         tid = 0
         n_flag = {FLAG_OK: 0, FLAG_CROSSES: 0, FLAG_AMBIGUOUS: 0}
+        n_trend = {}
         out_feats = []
 
         for i in range(n_transects):
@@ -868,12 +970,18 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
             lrr, r2, lse, lci = linreg_stats(xs, ys, conf)
             wlr, wr2, wse, wci = wlr_stats(xs, ys, us, conf)
 
+            trend, trend_src = classify_trend(
+                flag, trend_method, trend_thresh, n,
+                epr, eprunc, lrr, lci, wlr, wci)
+            n_trend[trend] = n_trend.get(trend, 0) + 1
+
             feat = QgsFeature(fields)
             feat.setId(tid)
             feat.setGeometry(out_geom)
             feat.setAttributes([tid, n, yr_min, yr_max, dist_min_v, dist_max_v,
                                  nsm, epr, eprunc, lrr, r2, lse, lci,
-                                 wlr, wr2, wse, wci, flag, 0])
+                                 wlr, wr2, wse, wci, flag, 0,
+                                 trend, trend_src])
             out_feats.append(feat)
             tid += 1
 
@@ -894,6 +1002,29 @@ class ShorelineChangeAlgorithm(QgsProcessingAlgorithm):
                     break
         for feat in out_feats:
             sink.addFeature(feat, QgsFeatureSink.FastInsert)
+
+        if tid:
+            parts = ', '.join(f'{k}: {n_trend.get(k, 0)}' for k in
+                              ('erosion', 'accretion', 'stable', 'unclassified'))
+            crit_en = ('statistical' if trend_method == TREND_STATISTICAL
+                       else f'threshold {trend_thresh} m/yr')
+            crit_es = ('estadístico' if trend_method == TREND_STATISTICAL
+                       else f'umbral {trend_thresh} m/año')
+            feedback.pushInfo(msg(
+                f'trend ({crit_en}), {tid} transects: {parts}.',
+                f'trend ({crit_es}), {tid} transectos: {parts}.'))
+            if (trend_method == TREND_STATISTICAL
+                    and n_trend.get('unclassified', 0) > n_flag[FLAG_CROSSES]
+                    + n_flag[FLAG_AMBIGUOUS]):
+                feedback.pushInfo(msg(
+                    'Some transects are unclassified because they have no '
+                    'confidence interval (2 dates without positional '
+                    'uncertainty). Add uncertainty or use the Threshold '
+                    'criterion.',
+                    'Algunos transectos quedan sin clasificar porque no '
+                    'tienen intervalo de confianza (2 fechas sin '
+                    'incertidumbre de posición). Añade la incertidumbre o '
+                    'usa el criterio Umbral.'))
 
         if n_cross:
             feedback.pushWarning(msg(

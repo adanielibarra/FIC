@@ -13,10 +13,10 @@ class ShorelineChangeProvider(QgsProcessingProvider):
         return 'shoreline_change_stats'
 
     def name(self):
-        return 'FIC Shoreline Change Analysis'
+        return 'FIC Coastal Change Analysis'
 
     def longName(self):
-        return 'FIC Shoreline Change Analysis'
+        return 'FIC Coastal Change Analysis'
 
     def icon(self):
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.png')
