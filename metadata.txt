@@ -2,7 +2,7 @@
 name=FIC Coastal Change Analysis
 qgisMinimumVersion=3.16
 description=Shoreline change analysis for QGIS: casts perpendicular transects along a baseline and computes NSM, EPR, LRR and WLR (with uncertainty) per transect, classifying it as erosion, accretion or stable from dated shorelines. DSAS-style workflow, runs as a Processing algorithm. / Análisis del cambio de línea de costa en QGIS: genera transectos perpendiculares a una línea base y calcula NSM, EPR, LRR y WLR (con su incertidumbre) por transecto, clasificándolo en erosión, acreción o estable a partir de líneas de costa con fecha. Flujo al estilo DSAS, se ejecuta como algoritmo de Processing.
-version=0.1.2
+version=1.0.0
 author=Daniel Ibarra Marinas
 email=daniel.ibarra@uat.edu.mx
 about=Plugin for shoreline change analysis. Created by Daniel Ibarra Marinas, Facultad de Ingeniería y Ciencias, Universidad Autónoma de Tamaulipas (Mexico).
@@ -18,7 +18,6 @@ about=Plugin for shoreline change analysis. Created by Daniel Ibarra Marinas, Fa
     - At least 2 dates are needed; with only 2 there is no R², LSE or confidence interval, so 3 or more are recommended.
     - The baseline must lie entirely on one side of all shorelines. Transects where it does not are flagged (flag = 1: baseline crosses a shoreline; flag = 2: seaward side could not be determined).
     - Positional uncertainty must be supplied by the user; the plugin does not estimate it. EPRunc and WLR are only as good as those values.
-    - Experimental: not yet tested extensively on real case studies. Please report problems in the issue tracker.
     Find it in the Processing Toolbox under "FIC Coastal Change Analysis" > "Coastal".
     ---
     Plugin para el análisis del cambio de línea de costa. Creado por Daniel Ibarra Marinas, Facultad de Ingeniería y Ciencias, Universidad Autónoma de Tamaulipas (México).
@@ -34,14 +33,15 @@ about=Plugin for shoreline change analysis. Created by Daniel Ibarra Marinas, Fa
     - Hacen falta al menos 2 fechas; con solo 2 no hay R², LSE ni intervalo de confianza, así que se recomiendan 3 o más.
     - La línea base debe quedar entera a un lado de todas las líneas de costa. Los transectos donde no se cumple se marcan (flag = 1: la línea base cruza alguna línea de costa; flag = 2: no se pudo saber hacia qué lado está el mar).
     - La incertidumbre de posición la aporta el usuario; el plugin no la estima. EPRunc y WLR son tan buenos como esos valores.
-    - Experimental: aún no se ha probado a fondo en casos reales. Si encuentras un error, abre un issue en el repositorio.
     Se encuentra en la Caja de herramientas de Processing, en "FIC Coastal Change Analysis" > "Coastal".
 tags=erosion, accretion, shoreline, shoreline change, coastal erosion, coast, transects, DSAS, NSM, EPR, LRR, WLR, uncertainty, línea de costa, erosión costera, incertidumbre
-changelog=0.1.2: trend field (erosion, accretion, stable, unclassified) with statistical or threshold criterion; positional uncertainty per shoreline (total field, components in quadrature: resolution, RMSE, digitizing, or single value) with EPR uncertainty and Weighted Linear Regression (WLR, WR2, WSE, WCI); R², LSE and LRR confidence interval (90, 95 or 99 percent), empty with fewer than 3 dates; baseline smoothing distance and tr_cross field for crossing transects; DSAS-style sign convention (onshore/offshore baseline, transects oriented seaward, positive = accretion) with a quality flag per transect; baseline CRS check (projected, metres) and automatic reprojection of shorelines; shoreline features with the same date are merged; inputs restricted to line layers; bilingual interface (English and Spanish).
+changelog=
+    1.0.0: first stable release; no changes to the code. / Primera versión estable; sin cambios en el código.
+    0.1.2: trend field (erosion, accretion, stable, unclassified) with statistical or threshold criterion; positional uncertainty per shoreline (total field, components in quadrature: resolution, RMSE, digitizing, or single value) with EPR uncertainty and Weighted Linear Regression (WLR, WR2, WSE, WCI); R², LSE and LRR confidence interval (90, 95 or 99 percent), empty with fewer than 3 dates; baseline smoothing distance and tr_cross field for crossing transects; DSAS-style sign convention (onshore/offshore baseline, transects oriented seaward, positive = accretion) with a quality flag per transect; baseline CRS check (projected, metres) and automatic reprojection of shorelines; shoreline features with the same date are merged; inputs restricted to line layers; bilingual interface (English and Spanish).
 tracker=https://github.com/adanielibarra/FIC/issues
 repository=https://github.com/adanielibarra/FIC
 homepage=https://github.com/adanielibarra/FIC
 category=Analysis
 hasProcessingProvider=yes
-experimental=True
+experimental=False
 icon=icon.png
