@@ -1,47 +1,50 @@
 [general]
-name=FIC Coastal Change Analysis
-qgisMinimumVersion=3.16
-description=Shoreline change analysis for QGIS: casts perpendicular transects along a baseline and computes NSM, EPR, LRR and WLR (with uncertainty) per transect, classifying it as erosion, accretion or stable from dated shorelines. DSAS-style workflow, runs as a Processing algorithm. / Análisis del cambio de línea de costa en QGIS: genera transectos perpendiculares a una línea base y calcula NSM, EPR, LRR y WLR (con su incertidumbre) por transecto, clasificándolo en erosión, acreción o estable a partir de líneas de costa con fecha. Flujo al estilo DSAS, se ejecuta como algoritmo de Processing.
+name=Coastal Inundation Under Climate Change
+qgisMinimumVersion=3.28
+qgisMaximumVersion=4.99
+supportsQt6=True
+description=Sea level rise flood mapping with hydraulic connectivity and DEM uncertainty bands
+about=Plugin created by Daniel Ibarra Marinas, Facultad de Ingeniería y Ciencias, Universidad Autónoma de Tamaulipas. Floods only what lies below the new sea level and connects to the sea. Uncertainty bands from DEM RMSE and projection sigma, classified disconnected low areas, styled GeoTIFF and GeoPackage outputs, statistics and metadata. Static model: no erosion, waves or drainage. Interface in English and Spanish.
 version=1.0.0
-author=Daniel Ibarra Marinas
+author=Daniel Ibarra Marinas, Facultad de Ingeniería y Ciencias, Universidad Autónoma de Tamaulipas
 email=daniel.ibarra@uat.edu.mx
-about=Plugin for shoreline change analysis. Created by Daniel Ibarra Marinas, Facultad de Ingeniería y Ciencias, Universidad Autónoma de Tamaulipas (Mexico).
-    What it does:
-    - Casts transects perpendicular to a user-digitized baseline, with user-defined spacing and length (metres), and intersects them with a multitemporal shoreline layer (lines with a date field, Date type or ISO text YYYY-MM-DD).
-    - Computes per transect: Net Shoreline Movement (NSM, m), End Point Rate (EPR, m/yr) and Linear Regression Rate (LRR, m/yr). With 3 or more dates it also gives R², the standard error of the estimate (LSE) and the confidence interval of the LRR (LCI, at 90, 95 or 99 percent).
-    - Optional positional uncertainty per shoreline: a total error field, or its components combined in quadrature (image resolution counted as 1 pixel, georeferencing RMSE, digitizing error), or a single value. With it, the plugin computes the EPR uncertainty (EPRunc) and the Weighted Linear Regression (WLR, weights 1/U²) with WR2, WSE and its confidence interval (WCI).
-    - Classifies each transect as erosion, accretion, stable or unclassified (trend field). Stable means a rate not different from zero (statistical criterion, default) or below a user-defined threshold.
-    - DSAS-style sign convention: the user states whether the baseline is onshore or offshore, and each transect is oriented seaward. Positive rates mean accretion and negative rates mean erosion, whatever the digitizing direction of the baseline. Transects are drawn from land to sea.
-    - Quality checks per transect: flag (baseline crossing a shoreline, or seaward side undetermined) and tr_cross (transect crossing another transect). An optional baseline smoothing distance helps transects follow the general shape of the coast.
-    - Technical details: shoreline features with the same date are merged, so each date gives one position per transect; if a transect crosses a shoreline more than once, the intersection closest to the baseline is used; shorelines in a different CRS are reprojected to the baseline CRS, which must be projected and in metres.
-    Requirements and limitations:
-    - At least 2 dates are needed; with only 2 there is no R², LSE or confidence interval, so 3 or more are recommended.
-    - The baseline must lie entirely on one side of all shorelines. Transects where it does not are flagged (flag = 1: baseline crosses a shoreline; flag = 2: seaward side could not be determined).
-    - Positional uncertainty must be supplied by the user; the plugin does not estimate it. EPRunc and WLR are only as good as those values.
-    Find it in the Processing Toolbox under "FIC Coastal Change Analysis" > "Coastal".
-    ---
-    Plugin para el análisis del cambio de línea de costa. Creado por Daniel Ibarra Marinas, Facultad de Ingeniería y Ciencias, Universidad Autónoma de Tamaulipas (México).
-    Qué hace:
-    - Genera transectos perpendiculares a una línea base digitalizada por el usuario, con espaciado y longitud configurables (en metros), y los corta con una capa multitemporal de líneas de costa (líneas con un campo de fecha, tipo Date o texto ISO AAAA-MM-DD).
-    - Calcula por transecto: Net Shoreline Movement (NSM, m), End Point Rate (EPR, m/año) y Linear Regression Rate (LRR, m/año). Con 3 o más fechas da también el R², el error estándar de la estimación (LSE) y el intervalo de confianza del LRR (LCI, al 90, 95 o 99 por ciento).
-    - Incertidumbre de posición opcional por línea de costa: un campo con el error total, o sus componentes combinados en cuadratura (resolución de la imagen contada como 1 píxel, RMSE de georreferenciación, error de digitalización), o un valor único. Con ella calcula la incertidumbre del EPR (EPRunc) y la regresión lineal ponderada (WLR, pesos 1/U²) con WR2, WSE y su intervalo de confianza (WCI).
-    - Clasifica cada transecto como erosion, accretion, stable o unclassified (campo trend). Estable significa una tasa no distinta de cero (criterio estadístico, por defecto) o por debajo de un umbral que elige el usuario.
-    - Signo al estilo DSAS: el usuario indica si la línea base está en tierra o en el mar, y cada transecto se orienta hacia el mar. Las tasas positivas son acreción y las negativas, erosión, sin importar el sentido en que se digitalizó la línea base. Los transectos se dibujan de tierra a mar.
-    - Controles de calidad por transecto: flag (la línea base cruza alguna línea de costa, o no se sabe hacia qué lado está el mar) y tr_cross (el transecto se cruza con otro). Una distancia de suavizado opcional ayuda a que los transectos sigan la forma general de la costa.
-    - Detalles técnicos: las features con la misma fecha se agrupan, de modo que cada fecha da una sola posición por transecto; si un transecto corta una línea de costa más de una vez, se usa el corte más cercano a la línea base; las líneas de costa en otro SRC se reproyectan al de la línea base, que debe ser proyectado y en metros.
-    Requisitos y limitaciones:
-    - Hacen falta al menos 2 fechas; con solo 2 no hay R², LSE ni intervalo de confianza, así que se recomiendan 3 o más.
-    - La línea base debe quedar entera a un lado de todas las líneas de costa. Los transectos donde no se cumple se marcan (flag = 1: la línea base cruza alguna línea de costa; flag = 2: no se pudo saber hacia qué lado está el mar).
-    - La incertidumbre de posición la aporta el usuario; el plugin no la estima. EPRunc y WLR son tan buenos como esos valores.
-    Se encuentra en la Caja de herramientas de Processing, en "FIC Coastal Change Analysis" > "Coastal".
-tags=erosion, accretion, shoreline, shoreline change, coastal erosion, coast, transects, DSAS, NSM, EPR, LRR, WLR, uncertainty, línea de costa, erosión costera, incertidumbre
-changelog=
-    1.0.0: first stable release; no changes to the code. / Primera versión estable; sin cambios en el código.
-    0.1.2: trend field (erosion, accretion, stable, unclassified) with statistical or threshold criterion; positional uncertainty per shoreline (total field, components in quadrature: resolution, RMSE, digitizing, or single value) with EPR uncertainty and Weighted Linear Regression (WLR, WR2, WSE, WCI); R², LSE and LRR confidence interval (90, 95 or 99 percent), empty with fewer than 3 dates; baseline smoothing distance and tr_cross field for crossing transects; DSAS-style sign convention (onshore/offshore baseline, transects oriented seaward, positive = accretion) with a quality flag per transect; baseline CRS check (projected, metres) and automatic reprojection of shorelines; shoreline features with the same date are merged; inputs restricted to line layers; bilingual interface (English and Spanish).
-tracker=https://github.com/adanielibarra/FIC/issues
-repository=https://github.com/adanielibarra/FIC
-homepage=https://github.com/adanielibarra/FIC
-category=Analysis
-hasProcessingProvider=yes
-experimental=False
 icon=icon.png
+hasProcessingProvider=yes
+repository=https://github.com/adanielibarra/CoastalInundation_Under_ClimateChange
+tracker=https://github.com/adanielibarra/CoastalInundation_Under_ClimateChange/issues
+homepage=https://github.com/adanielibarra/CoastalInundation_Under_ClimateChange
+changelog=1.0.0
+    - First stable release; no changes to the code. / Primera versión estable; sin cambios en el código.
+    0.5.5
+    - Works with QGIS 3.28 LTR and later (fallbacks for enums added in QGIS 3.30/3.36)
+    0.5.4
+    - Repository, tracker and homepage set to GitHub
+    0.5.3
+    - Help: author ORCID link; GeoPackage metadata: author_orcid
+    - Manuals: clickable links (email, ORCID, ResearchGate, DOI)
+    0.5.2
+    - Help (English and Spanish): link to the author's ResearchGate profile
+    0.5.1
+    - Correct name of the percentile model: two half-normals joined at the median (not a classical split normal)
+    - Manuals: kσ with percentiles means the band offsets; warning about large k with 17/83
+    0.5.0
+    - Projection uncertainty as percentiles (17/83 or 5/95): two half-normals joined at the median, combined with the DEM error;
+      asymmetric lower and upper bands; central level stays at the projection median
+    - Probability of being under water at the central level in the log and the statistics table
+    - Statistics: dem_sigma_m, percentiles, band offsets, prob_at_central
+    0.4.1
+    - Sea point and empty band messages rewritten for each NoData option
+    - Help, metadata and manuals warn that a symmetric projection sigma may underestimate the upper band
+    - Manuals: step by step includes bias and NoData handling; same notes in both languages
+    0.4.0
+    - NoData connected to a sea point is treated as sea (default); option for NoData on the raster edge
+    - DEM vertical bias: DEM corrected and sigma = sqrt(RMSE^2 - bias^2)
+    - Optional base level raster (e.g. high tide surface)
+    - Corrected per-pixel probabilities of the bands (lower >= 90 percent, central 50-90 percent, upper 10-50 percent)
+    - Metadata note on overlap between flood_upper and disc_connects_at_upper
+    - Removed a nesting check that could not fail
+    0.3.6
+    - Bilingual labels and help, logos, manuals
+experimental=False
+category=Analysis
+tags=sea level rise,climate change,coastal flooding,inundation,DEM,connectivity,uncertainty
